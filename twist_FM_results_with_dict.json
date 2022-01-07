@@ -1,0 +1,142 @@
+{
+    "traditional_airplane": {
+        "inviscid": {
+            "Cx": {
+                "main_wing_left": -0.00010250461505234156,
+                "main_wing_right": -0.00010250461505234073,
+                "total": -0.00020500923010468227
+            },
+            "Cy": {
+                "main_wing_left": 0.0,
+                "main_wing_right": 0.0,
+                "total": 0.0
+            },
+            "Cz": {
+                "main_wing_left": 0.022377353763197085,
+                "main_wing_right": 0.022377353763197168,
+                "total": 0.044754707526394245
+            },
+            "Cl": {
+                "main_wing_left": -0.004693816572611923,
+                "main_wing_right": 0.004693816572611957,
+                "total": 3.3558867245346145e-17
+            },
+            "Cm": {
+                "main_wing_left": 0.0,
+                "main_wing_right": 0.0,
+                "total": 0.0
+            },
+            "Cn": {
+                "main_wing_left": -3.1152883505045575e-05,
+                "main_wing_right": 3.115288350504522e-05,
+                "total": -3.571054030687427e-19
+            },
+            "CL": {
+                "main_wing_left": -0.022377353763197085,
+                "main_wing_right": -0.022377353763197168,
+                "total": -0.044754707526394245
+            },
+            "CD": {
+                "main_wing_left": 0.00010250461505234156,
+                "main_wing_right": 0.00010250461505234073,
+                "total": 0.00020500923010468227
+            },
+            "CS": {
+                "main_wing_left": 0.0,
+                "main_wing_right": 0.0,
+                "total": 0.0
+            },
+            "Cl_w": {
+                "main_wing_left": 0.004693816572611923,
+                "main_wing_right": -0.004693816572611957,
+                "total": -3.3558867245346145e-17
+            },
+            "Cm_w": {
+                "main_wing_left": 0.0,
+                "main_wing_right": 0.0,
+                "total": 0.0
+            },
+            "Cn_w": {
+                "main_wing_left": 3.1152883505045575e-05,
+                "main_wing_right": -3.115288350504522e-05,
+                "total": 3.571054030687427e-19
+            }
+        },
+        "viscous": {
+            "Cx": {
+                "main_wing_left": 0.0,
+                "main_wing_right": 0.0,
+                "total": 0.0
+            },
+            "Cy": {
+                "main_wing_left": 0.0,
+                "main_wing_right": 0.0,
+                "total": 0.0
+            },
+            "Cz": {
+                "main_wing_left": 0.0,
+                "main_wing_right": 0.0,
+                "total": 0.0
+            },
+            "Cl": {
+                "main_wing_left": 0.0,
+                "main_wing_right": 0.0,
+                "total": 0.0
+            },
+            "Cm": {
+                "main_wing_left": 0.0,
+                "main_wing_right": 0.0,
+                "total": 0.0
+            },
+            "Cn": {
+                "main_wing_left": 0.0,
+                "main_wing_right": 0.0,
+                "total": 0.0
+            },
+            "CL": {
+                "main_wing_left": 0.0,
+                "main_wing_right": 0.0,
+                "total": 0.0
+            },
+            "CD": {
+                "main_wing_left": 0.0,
+                "main_wing_right": 0.0,
+                "total": 0.0
+            },
+            "CS": {
+                "main_wing_left": 0.0,
+                "main_wing_right": 0.0,
+                "total": 0.0
+            },
+            "Cl_w": {
+                "main_wing_left": 0.0,
+                "main_wing_right": 0.0,
+                "total": 0.0
+            },
+            "Cm_w": {
+                "main_wing_left": 0.0,
+                "main_wing_right": 0.0,
+                "total": 0.0
+            },
+            "Cn_w": {
+                "main_wing_left": 0.0,
+                "main_wing_right": 0.0,
+                "total": 0.0
+            }
+        },
+        "total": {
+            "Cx": -0.00020500923010468227,
+            "Cy": 0.0,
+            "Cz": 0.044754707526394245,
+            "Cl": 3.3558867245346145e-17,
+            "Cm": 0.0,
+            "Cn": -3.571054030687427e-19,
+            "CD": 0.00020500923010468227,
+            "CS": 0.0,
+            "CL": -0.044754707526394245,
+            "Cl_w": -3.3558867245346145e-17,
+            "Cm_w": 0.0,
+            "Cn_w": 3.571054030687427e-19
+        }
+    }
+}
