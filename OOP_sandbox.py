@@ -133,6 +133,50 @@ class Masters_Research:
             with open("traditional_airplane_case_one.json", "w") as write_file:
                 json.dump(self.data, write_file, indent = 2)
             
+        
+        elif test_condition == "elliptic":
+            # initializing dictionary out of ground effect
+            self.data = {
+                "CG" : [0,0,0],
+                "weight" : 100.0,
+                "reference" : {
+                    "area" : 225.0,
+                    "longitudinal_length" : 6.5,
+                    "lateral_length" : 36.74
+                },
+                "airfoils" : {
+                    "NACA_0010" : {
+                        "type" : "linear",
+                        "aL0" : 0.0,
+                        "CLa" : 6.28318530717959,
+                        "CmL0" : 0.0,
+                        "Cma" : 0.00,
+                        "CD0" : 0.00,
+                        "CD1" : 0.0,
+                        "CD2" : 0.0,
+                        "CL_max" : 1.4
+                    }
+                },
+                "wings" : {
+                    "main_wing" : {
+                        "ID" : 1,
+                        "side" : "both",
+                        "is_main" : True,
+                        "semispan" : 18.37,
+                        "airfoil" : "NACA_0010",
+                        "twist" : [[0.0, 2.0], [1.0, 2.0]],
+                        "chord" : ["elliptic", 8.0],
+                        "grid" : {
+                            "N" : 40
+                        }
+                    }
+                }
+            }
+            
+            # Writes Dictionairy for Wing NOT IN GROUND EFFECT(OGE) to json to be used in MachupX calculations
+            with open("traditional_airplane_case_one.json", "w") as write_file:
+                json.dump(self.data, write_file, indent = 2)
+            
         else:
             print("Incorrect Input")
             
@@ -161,12 +205,22 @@ class Masters_Research:
         self.tip_chord_list = self.chord_length[1]
         
         self.c_root = self.root_chord_list[1]
-        self.c_tip = self.tip_chord_list[1]
+        if test_condition != "elliptic":
+            self.c_tip = self.tip_chord_list[1]
         self.semispan = self.data["wings"]["main_wing"] ["semispan"]
         self.b = self.semispan*2
         self.area = self.data["reference"]["area"]
         self.RA = (self.b*self.b)/self.area
-        self.RT = self.c_tip/self.c_root
+        
+        
+        
+        if test_condition == "IGE":
+            self.main_wing_height_above_ground = self.data["wings"]["main_wing"]["connect_to"]["dz"]
+            self.ground_effect_wing_height_above_ground = self.data["wings"]["ground_effect_wing"]["connect_to"]["dz"]
+            
+        
+        if test_condition != "elliptic":
+            self.RT = self.c_tip/self.c_root
 
         self.CLa = self.data["airfoils"]["NACA_0010"]["CLa"]
         
@@ -181,6 +235,72 @@ class Masters_Research:
     def Display_planform(self):
         self.my_scene.display_planform()
         
+    # Returns the angle of attack required to hit specified CL for given planform  (DOES NOT APPLY THEM TO CALCULATIONS, ONLY RETURNS A VALUE)
+    def Get_AoA_At_Target_CL(self, target_CL):
+        return self.my_scene.target_CL(CL = target_CL)     
+        
+    
+    
+    
+    # Applies angle of attack needed to hit target CL to plaform for calculations
+    def Apply_AoA_At_Target_CL(self, target_CL):
+        
+        
+        Applied_AoA = self.Get_AoA_At_Target_CL(target_CL)
+        print()
+        print("Applied_AoA: ", Applied_AoA)
+        print()
+        
+        def Extract(lst):
+            return [item[0] for item in lst]
+        
+        def set_AoA_Main_Wing(lst, x):
+            return [[item[0], item[1]+x]for item in lst]
+        
+        def set_AoA_Ground_Effect_Wing(lst, x):
+            return [[item[0], item[1]+x]for item in lst]
+        
+        base_twist_list_Main_Wing = self.data["wings"]["main_wing"] ["twist"]
+        if self.test_case == "IGE":
+            base_twist_list_Ground_Effect_Wing = self.data["wings"]["ground_effect_wing"] ["twist"]
+            
+        
+        print()
+        print("CL Total: ",json.dumps(self.my_forces["traditional_airplane"]["inviscid"]["CL"]["total"], indent=4))
+        print("CD Total: ",json.dumps(self.my_forces["traditional_airplane"]["inviscid"]["CD"]["total"], indent=4))
+        print()
+        
+        with open("traditional_airplane_case_one.json", "w") as write_file:
+            if self.test_case == "IGE":
+                self.data["wings"]["main_wing"]["twist"]= set_AoA_Main_Wing(base_twist_list_Main_Wing, Applied_AoA)
+                self.data["wings"]["ground_effect_wing"]["twist"]= set_AoA_Ground_Effect_Wing(base_twist_list_Ground_Effect_Wing, -Applied_AoA)
+            
+            elif self.test_case == "OGE":
+                self.data["wings"]["main_wing"]["twist"] = set_AoA_Main_Wing(base_twist_list_Main_Wing, Applied_AoA)
+                #self.my_scene.display_wireframe(show_legend=True)
+            
+            elif self.test_case == "elliptic":
+                self.my_scene.display_wireframe(show_legend=True)
+                
+            else:
+                print("Incorrect Input")
+            json.dump(self.data, write_file, indent = 2)
+        
+        self.my_scene = MX.Scene(self.input_file)
+        #self.my_scene.display_wireframe(show_legend=True)
+        #print("twist after AoA sweep", self.data["wings"]["main_wing"]["twist"])
+        self.my_forces = self.my_scene.solve_forces(dimensional=False, non_dimensional=True, report_by_segment=True, verbose=False)
+        
+        # Prints overall Lift and Drag, CL should be zero if done correctly
+        print()
+        print("CL Total: ",json.dumps(self.my_forces["traditional_airplane"]["inviscid"]["CL"]["total"], indent=4))
+        print("CD Total: ",json.dumps(self.my_forces["traditional_airplane"]["inviscid"]["CD"]["total"], indent=4))
+        print()
+        
+        
+        self.distributions = self.my_scene.distributions(verbose=False)
+        #self.Plot_CL_Distribution()
+        
         
     # Reversing a list using reversed()
     def Reverse(self, lst):
@@ -192,6 +312,14 @@ class Masters_Research:
         self.span_frac = self.distributions["traditional_airplane"]["main_wing_left"]["span_frac"]
         return self.span_frac
     
+    
+    def get_span_frac_left(self):
+        self.span_frac_left= self.distributions["traditional_airplane"]["main_wing_left"]["span_frac"]
+        return self.span_frac_left
+    
+    def get_span_frac_right(self):
+        self.span_frac_right = self.distributions["traditional_airplane"]["main_wing_right"]["span_frac"]
+        return self.span_frac_right
     
     # Eq. 1.8.33 in Phillips for chord length for a tapered wing
     def calculate_c_z(self, z_spanwise, RT):
@@ -238,7 +366,7 @@ class Masters_Research:
         return 1 - (m.sin(theta)/(c_theta/self.c_root))
     
     
-    
+    # Relicates figure 1.8.19 in Phillips textbook
     def Display_Optimum_Washout_Distribution_Plot(self):    
         
 # =============================================================================
@@ -278,31 +406,22 @@ class Masters_Research:
         
         fig = plt.figure()
         ax = fig.add_subplot(111)
-
+        #print(self.get_span_frac())
         for i in np.arange(0,1.1,0.1):
             RT = i
 
             # START ============================================================================= STEP 1:
             # section span_frac will give me the location of each node along the span in a value from 0 to 1
             # multiply this value by the semispan to get the spanwise location z
-            a_list = self.get_span_frac()
-            
-            z_spanwise_reversed = [element * self.semispan for element in a_list]
-            # currently, the list is given to me with z_spanwise_reversed[0] being equal to the location at the tip
-            # this reverses the order so that z_spanwise_reversed[0] is equal to the first node after the root
-            
-            
-            # Reversing a list using reversed()
-            def Reverse(lst):
-                return [ele for ele in reversed(lst)]
-            
-            z_spanwise = Reverse(z_spanwise_reversed)
+            span_frac = self.get_span_frac()
+           
+            z_spanwise = [element * self.semispan for element in span_frac]
             # END ============================================================================= STEP 1
             
             # START ============================================================================= STEP 2: 
             # change of variables for spanwise coordinate
             change_of_variables = []
-            list_length = len(a_list)
+            list_length = len(span_frac)
             
             for i in range(list_length):
                new_theta = self.calculate_theta(z_spanwise[i])
@@ -381,234 +500,37 @@ class Masters_Research:
 
         plt.title("Figure 1.8.19")
 
-        txt="I need the caption to be present a little below X-axis"
+        #txt="I need the caption to be present a little below X-axis"
 
         ax.set_xlabel('z/b \n Optimum washout distribution for wings of linear taper \n in production of minimum induced drag, as defined in Eq. 1.8.43 in Phillips')
         plt.ylabel("\u03C9", rotation=0)
-
+        
         plt.show()
-    
-    def Apply_Optimal_Twist_Distribution_without_dict(self):
-        
-        span_frac = self.get_span_frac()
-        list_length = len(span_frac)
-        
-        
-        z_spanwise_reversed = [element * self.semispan for element in span_frac]
-        # currently, the list is given to me with z_spanwise_reversed[0] being equal to the location at the tip
-        # this reverses the order so that z_spanwise_reversed[0] is equal to the first node after the root
-        
-        
-        # Reversing a list using reversed()
-        def Reverse(lst):
-            return [ele for ele in reversed(lst)]
-        
-        z_spanwise = Reverse(z_spanwise_reversed)
-        
-        
-        # Optimum total washout to minimize induced drag
-        # Eq. 1.8.43 in Phillips
-        total_opt_twist = self.linear_taper_calculate_Cap_omega(self.RT)
-        # this is given in radians, convert to degrees
-        total_opt_twist_degrees = m.degrees(total_opt_twist)
-        
-        
-        # change of variables for spanwise coordinate
-        change_of_variables = []
-        
-        for i in range(list_length):
-           new_theta = self.calculate_theta(z_spanwise[i])
-           change_of_variables.append(new_theta)
-           
-        # theta at each spanwise location is now equal to change_of_variables, it is an array of length 40
-        theta = change_of_variables
-        
-        
-        omega_opt_array = []
-        for i in range(list_length):
-           omega_opt_array.append(self.linear_taper_calculate_omega(theta[i], self.RT))
-        
-        
-        
-        # calculates the twist value to be applies at each span fraction location
-        applied_twist = []
-        for i in range(list_length):
-           apply_twist_at_node = omega_opt_array[i] * total_opt_twist_degrees
-           applied_twist.append(apply_twist_at_node)
-        
-        # If i want to create a lists of lists to apply the twist to the wing planform in the dictionary
-        # Concerned that there are actually 42 specified locations instead of 40 because I added specifications
-        # for values at 0.0 and 1.0
-        span_frac_correct_direction = self.Reverse(span_frac)  
-        
-        l = []
-        l.append([0.0, 0.0])
-        for i in range(list_length):
-           l.append([span_frac_correct_direction[i], applied_twist[i]])
-           
-        l.append([1.0, total_opt_twist_degrees])  
-        #print(l)
-        twist_list = l
-        # concerned that twist_list has 42 elements instead of 40 and that that will mess with my values
-        
-        
-        if self.test_case == "IGE":
-            # initializing dictionary in ground effect
-            self.data = {
-                "CG" : [0,0,0],
-                "weight" : 100.0,
-                "reference" : {
-                    "area" : 225.0,
-                    "longitudinal_length" : 6.5,
-                    "lateral_length" : 36.74
-                },
-                "airfoils" : {
-                    "NACA_0010" : {
-                        "type" : "linear",
-                        "aL0" : 0.0,
-                        "CLa" : 6.28318530717959,
-                        "CmL0" : 0.0,
-                        "Cma" : 0.00,
-                        "CD0" : 0.00,
-                        "CD1" : 0.0,
-                        "CD2" : 0.0,
-                        "CL_max" : 1.4
-                    }
-                },
-                "wings" : {
-                    "main_wing" : {
-                        "ID" : 1,
-                        "side" : "both",
-                        "is_main" : True,
-                        "connect_to" : {
-                            "location" : "root",
-                            "dz" : -1.837
-                        },
-                        "semispan" : 18.37,
-                        "airfoil" : "NACA_0010",
-                        "twist" : twist_list,
-                        "chord" : [[0.0, 8.75], [1.0, 3.5]],
-                        "grid" : {
-                            "N" : 40
-                        }
-                    },
-                    "ground_effect_wing" : {
-                        "ID" : 2,
-                        "side" : "both",
-                        "is_main" : False,
-                        "connect_to" : {
-                            "location" : "root",
-                            "dz" : 1.837
-                        },
-                        "semispan" : 18.37,
-                        "airfoil" : "NACA_0010",
-                        "twist" : [[0.0, 0.0], [1.0, 0.0]],
-                        "chord" : [[0.0, 8.75], [1.0, 3.5]],
-                        "grid" : {
-                            "N" : 40
-                        }
-                    }
-                }
-            }
-            
-            # Writes Dictionairy for Wing IN GROUND EFFECT(IGE) to json to be used in MachupX calculations
-            with open("traditional_airplane_case_one.json", "w") as write_file:
-                json.dump(self.data, write_file, indent = 2)
-                
-                
-        elif self.test_case == "OGE":
-            # initializing dictionary out of ground effect
-            self.data = {
-                "CG" : [0,0,0],
-                "weight" : 100.0,
-                "reference" : {
-                    "area" : 225.0,
-                    "longitudinal_length" : 6.5,
-                    "lateral_length" : 36.74
-                },
-                "airfoils" : {
-                    "NACA_0010" : {
-                        "type" : "linear",
-                        "aL0" : 0.0,
-                        "CLa" : 6.28318530717959,
-                        "CmL0" : 0.0,
-                        "Cma" : 0.00,
-                        "CD0" : 0.00,
-                        "CD1" : 0.0,
-                        "CD2" : 0.0,
-                        "CL_max" : 1.4
-                    }
-                },
-                "wings" : {
-                    "main_wing" : {
-                        "ID" : 1,
-                        "side" : "both",
-                        "is_main" : True,
-                        "semispan" : 18.37,
-                        "airfoil" : "NACA_0010",
-                        "twist" : twist_list,
-                        "chord" : [[0.0, 8.75], [1.0, 3.5]],
-                        "grid" : {
-                            "N" : 40
-                        }
-                    }
-                }
-            }
-            
-            # Writes Dictionairy for Wing NOT IN GROUND EFFECT(OGE) to json to be used in MachupX calculations
-            with open("traditional_airplane_case_one.json", "w") as write_file:
-                json.dump(self.data, write_file, indent = 2)
-            
-        else:
-            print("Incorrect Input")
-            
-        #print("twist", self.data["wings"]["main_wing"] ["twist"])
-        # Specify input file and Create global myScene
-        self.input_file = "traditional_input_case_one.json"
-        self.my_scene = MX.Scene(self.input_file)
-        
-        ################# FORCES #################
-        self.my_forces = self.my_scene.solve_forces(dimensional=False, non_dimensional=True, report_by_segment=True, verbose=False)
-        
-        with open('twist_FM_results_withOUT_dict.json', 'w', encoding='utf-8') as f:
-            json.dump(self.my_forces, f, ensure_ascii=False, indent=4)
-            
-        self.CL_total_main = self.my_forces["traditional_airplane"]["inviscid"]["CL"]["main_wing_left"] + self.my_forces["traditional_airplane"]["inviscid"]["CL"]["main_wing_right"]
-        self.CD_total_main= self.my_forces["traditional_airplane"]["inviscid"]["CD"]["main_wing_left"] + self.my_forces["traditional_airplane"]["inviscid"]["CD"]["main_wing_right"]
-       
-        ################# DISTRIBUTIONS #################
-        self.distributions = self.my_scene.distributions(verbose=False)   
-        self.distributions = self.my_scene.distributions(verbose=False)
-        print("twist", self.distributions["traditional_airplane"]["main_wing_left"] ["section_CL"])
-        with open('twist_distribution_results_withOUT_dict.json', 'w', encoding='utf-8') as f:
-            json.dump(self.distributions, f, ensure_ascii=False, indent=4)
-        
-        
         
     
+
+    def replicate_figure_3_from_hunsaker_paper(self):
+        test = 0
+        
+        
+        
+        
+    # Calculates the optimal twist distribution for the given planform and applies this twist to the self.data dictionairy
     def Apply_Optimal_Twist_Distribution(self):
         
         span_frac = self.get_span_frac()
         list_length = len(span_frac)
         
-        
-        z_spanwise_reversed = [element * self.semispan for element in span_frac]
-        # currently, the list is given to me with z_spanwise_reversed[0] being equal to the location at the tip
-        # this reverses the order so that z_spanwise_reversed[0] is equal to the first node after the root
-        
-        
-        # Reversing a list using reversed()
-        def Reverse(lst):
-            return [ele for ele in reversed(lst)]
-        
-        z_spanwise = Reverse(z_spanwise_reversed)
-        
-        
+        z_spanwise = [element * self.semispan for element in span_frac]
+        #print("z_spanwise: ", z_spanwise)
+        #print()
         # Optimum total washout to minimize induced drag
         # Eq. 1.8.43 in Phillips
         total_opt_twist = self.linear_taper_calculate_Cap_omega(self.RT)
         # this is given in radians, convert to degrees
         total_opt_twist_degrees = m.degrees(total_opt_twist)
+        #print("total_opt_twist_degrees: ", total_opt_twist_degrees)
+        #print()
         
         
         # change of variables for spanwise coordinate
@@ -620,33 +542,60 @@ class Masters_Research:
            
         # theta at each spanwise location is now equal to change_of_variables, it is an array of length 40
         theta = change_of_variables
-        
+        #print()
+        #print("theta: ", theta)
+        #print()
         
         omega_opt_array = []
         for i in range(list_length):
            omega_opt_array.append(self.linear_taper_calculate_omega(theta[i], self.RT))
         
         
-        
+        #print()
+        #print("omega_opt_array: ", omega_opt_array)
+        #print()
         # calculates the twist value to be applies at each span fraction location
         applied_twist = []
         for i in range(list_length):
            apply_twist_at_node = omega_opt_array[i] * total_opt_twist_degrees
            applied_twist.append(apply_twist_at_node)
         
+        #print()
+        #print("applied_twist: ", applied_twist)
+        #print()
+        #print("applied_twist: ", applied_twist)
+        #print()
         # If i want to create a lists of lists to apply the twist to the wing planform in the dictionary
         # Concerned that there are actually 42 specified locations instead of 40 because I added specifications
         # for values at 0.0 and 1.0
-        span_frac_correct_direction = self.Reverse(span_frac)  
+        
         
         l = []
-        l.append([0.0, 0.0])
-        for i in range(list_length):
-           l.append([span_frac_correct_direction[i], applied_twist[i]])
-           
         l.append([1.0, total_opt_twist_degrees])  
+        for i in range(list_length):
+           l.append([span_frac[i], applied_twist[i]])
+           
+        l.append([0.0, 0.0])
         #print(l)
-        twist_list = l
+        twist_list = self.Reverse(l)
+        
+        
+        
+        
+        applied_twist_ground_effect_wing = [element * -1 for element in applied_twist]
+        
+        
+        
+        l_ground_effect_wing = []
+        l_ground_effect_wing.append([1.0, -total_opt_twist_degrees])  
+        for i in range(list_length):
+           l_ground_effect_wing.append([span_frac[i], applied_twist_ground_effect_wing[i]])
+           
+        l_ground_effect_wing.append([0.0, 0.0])
+        #print(l)
+        twist_list_ground_effect_wing = self.Reverse(l_ground_effect_wing)
+        
+        
         # concerned that twist_list has 42 elements instead of 40 and that that will mess with my values
         
         
@@ -700,7 +649,7 @@ class Masters_Research:
                         },
                         "semispan" : 18.37,
                         "airfoil" : "NACA_0010",
-                        "twist" : [[0.0, 0.0], [1.0, 0.0]],
+                        "twist" : twist_list_ground_effect_wing,
                         "chord" : [[0.0, 8.75], [1.0, 3.5]],
                         "grid" : {
                             "N" : 40
@@ -759,7 +708,7 @@ class Masters_Research:
             
         else:
             print("Incorrect Input")
-            
+        
         #print("twist", self.data["wings"]["main_wing"] ["twist"])
         # Specify input file and Create global myScene
         self.input_file = "traditional_input_case_one.json"
@@ -768,55 +717,53 @@ class Masters_Research:
         ################# FORCES #################
         self.my_forces = self.my_scene.solve_forces(dimensional=False, non_dimensional=True, report_by_segment=True, verbose=False)
         
-        with open('twist_FM_results_with_dict.json', 'w', encoding='utf-8') as f:
+        with open('twist_distribution_results_with_dict.json', 'w', encoding='utf-8') as f:
             json.dump(self.my_forces, f, ensure_ascii=False, indent=4)
-        
+            
         self.CL_total_main = self.my_forces["traditional_airplane"]["inviscid"]["CL"]["main_wing_left"] + self.my_forces["traditional_airplane"]["inviscid"]["CL"]["main_wing_right"]
         self.CD_total_main= self.my_forces["traditional_airplane"]["inviscid"]["CD"]["main_wing_left"] + self.my_forces["traditional_airplane"]["inviscid"]["CD"]["main_wing_right"]
        
+        
+        #print("Total CL: ", self.CL_total_main)
+        #print("Total CD: ", self.CD_total_main)
+        
+        # IF WING IS IN GROUND EFFECT, C_TOTAL SHOULD ALWAYS BE EQUAL TO 0
+        print("-------------------------------------------")
+        print()
+        print("CL Total: ",json.dumps(self.my_forces["traditional_airplane"]["inviscid"]["CL"]["total"], indent=4))
+        print("CD Total: ",json.dumps(self.my_forces["traditional_airplane"]["inviscid"]["CD"]["total"], indent=4))
+        print()
+        print("-------------------------------------------")
+        
+        print("-------------------------------------------")
+        print()
+        print("CL Main Wing: ",json.dumps(self.my_forces["traditional_airplane"]["inviscid"]["CL"]["main_wing_left"] + self.my_forces["traditional_airplane"]["inviscid"]["CL"]["main_wing_right"], indent=4))
+        print("CD Main Wing: ",json.dumps(self.my_forces["traditional_airplane"]["inviscid"]["CD"]["main_wing_left"] + self.my_forces["traditional_airplane"]["inviscid"]["CD"]["main_wing_right"], indent=4))
+        print()
+        print("-------------------------------------------")
+        
         ################# DISTRIBUTIONS #################
-        self.distributions = self.my_scene.distributions(verbose=False)
-        #print()
-        #print("twist", self.distributions["traditional_airplane"]["main_wing_left"] ["section_CL"])
-        #print()
-        #print("twist", self.distributions["traditional_airplane"]["main_wing_left"] ["section_CL"])
-        #print()
-        left_section_CL = self.distributions["traditional_airplane"]["main_wing_left"] ["section_CL"]
-        right_section_CL = self.distributions["traditional_airplane"]["main_wing_right"] ["section_CL"]
-        combined_section_CL = left_section_CL + right_section_CL
-        #print(combined_section_CL)
+        self.distributions = self.my_scene.distributions(verbose=False)   
+        #print("twist", self.distributions["traditional_airplane"]["main_wing_left"] ["twist"])
         with open('twist_distribution_results_with_dict.json', 'w', encoding='utf-8') as f:
             json.dump(self.distributions, f, ensure_ascii=False, indent=4)
     
+    # Plots the section CL values for each node of the given planform
     def Plot_CL_Distribution(self):
         ################# DISTRIBUTIONS #################
-        def Reverse(lst):
-            return [ele for ele in reversed(lst)]
-        
-        #self.distributions = self.my_scene.distributions(verbose=False)
-        #print()
-        #print("twist", self.distributions["traditional_airplane"]["main_wing_left"] ["section_CL"])
-        #print()
-        #print("twist", self.distributions["traditional_airplane"]["main_wing_left"] ["section_CL"])
-        #print()
         left_section_CL = self.distributions["traditional_airplane"]["main_wing_left"] ["section_CL"]
         right_section_CL = self.distributions["traditional_airplane"]["main_wing_right"] ["section_CL"]
-        correct_left_section_CL = Reverse(left_section_CL)
-        correct_right_section_CL = Reverse(right_section_CL)
-        #combined_section_CL = left_section_CL + right_section_CL
-        combined_section_CL = correct_left_section_CL + correct_right_section_CL
-        #print(combined_section_CL)
         
-        left_span_frac = self.get_span_frac()
+        combined_section_CL = left_section_CL + right_section_CL
+
+        left_span_frac = self.get_span_frac_left()
         
         
-        right_span_frac = Reverse(left_span_frac)
+        right_span_frac = self.get_span_frac_right()
         
         multiplied_left_span_frac = [element * -1 for element in left_span_frac]
         
         total_span_frac = multiplied_left_span_frac + right_span_frac
-        #print(total_span_frac)
-        
         
         fig,ax = plt.subplots(1)
         
@@ -826,28 +773,37 @@ class Masters_Research:
         # plot the data
         ax.plot(x,y)
     
+    # performs a sweep over a range of angles of attack specified by the user and returns the Lift and Drag coefficients
     def AoA_sweep(self, range_low, range_high, step):
         
         def Extract(lst):
             return [item[0] for item in lst]
         
-        def adjust_AoA(lst, x):
+        def adjust_AoA_Main_wing(lst, x):
             return [[item[0], item[1]+x]for item in lst]
         
-        base_twist_list = self.data["wings"]["main_wing"] ["twist"]
+        def adjust_AoA_Ground_Effect_Wing(lst, x):
+            return [[item[0], item[1]+x]for item in lst]
+        
+        base_twist_list_Main_Wing = self.data["wings"]["main_wing"] ["twist"]
+        if self.test_case == "IGE":
+            base_twist_list_Ground_Effect_Wing = self.data["wings"]["ground_effect_wing"] ["twist"]
         
         #AoA_Swept_twist_list = adjust_AoA(base_twist_list, 1)
         #print("twist after AoA sweep", AoA_Swept_twist_list)
         for x in range(range_low, range_high, step):
             with open("traditional_airplane_case_one.json", "w") as write_file:
                 if self.test_case == "IGE":
-                    self.data["wings"]["main_wing"]["twist"]= adjust_AoA(base_twist_list, x)
-                    self.data["wings"]["ground_effect_wing"]["twist"]= adjust_AoA(base_twist_list, -x)
-                
+                    self.data["wings"]["main_wing"]["twist"]= adjust_AoA_Main_wing(base_twist_list_Main_Wing, x)
+                    self.data["wings"]["ground_effect_wing"]["twist"]= adjust_AoA_Ground_Effect_Wing(base_twist_list_Ground_Effect_Wing, -x)
+                    
                 elif self.test_case == "OGE":
-                    self.data["wings"]["main_wing"]["twist"] = adjust_AoA(base_twist_list, x)
+                    self.data["wings"]["main_wing"]["twist"] = adjust_AoA_Main_wing(base_twist_list_Main_Wing, x)
                     self.my_scene.display_wireframe(show_legend=True)
                 
+                elif self.test_case == "elliptic":
+                    self.my_scene.display_wireframe(show_legend=True)
+                    
                 else:
                     print("Incorrect Input")
                 json.dump(self.data, write_file, indent = 2)
@@ -857,22 +813,96 @@ class Masters_Research:
             self.my_forces = self.my_scene.solve_forces(dimensional=False, non_dimensional=True, report_by_segment=True, verbose=False)
             
             # Prints overall Lift and Drag, CL should be zero if done correctly
+            #print()
+            
+            # IF WING IS IN GROUND EFFECT, C_TOTAL SHOULD ALWAYS BE EQUAL TO 0
+            print("-------------------------------------------")
             print()
             print("CL Total: ",json.dumps(self.my_forces["traditional_airplane"]["inviscid"]["CL"]["total"], indent=4))
             print("CD Total: ",json.dumps(self.my_forces["traditional_airplane"]["inviscid"]["CD"]["total"], indent=4))
             print()
+            print("-------------------------------------------")
+            
+            print("-------------------------------------------")
+            print()
+            print("CL Main Wing: ",json.dumps(self.my_forces["traditional_airplane"]["inviscid"]["CL"]["main_wing_left"] + self.my_forces["traditional_airplane"]["inviscid"]["CL"]["main_wing_right"], indent=4))
+            print("CD Main Wing: ",json.dumps(self.my_forces["traditional_airplane"]["inviscid"]["CD"]["main_wing_left"] + self.my_forces["traditional_airplane"]["inviscid"]["CD"]["main_wing_right"], indent=4))
+            print()
+            print("-------------------------------------------")
+            
+            print("AoA: ", x)
             
             
             self.distributions = self.my_scene.distributions(verbose=False)
-            self.Plot_CL_Distribution()
-        
-        
+            #self.Plot_CL_Distribution()
+            
     
+        
+    # If in ground effect, sets the height of the wing above the ground
+    def set_h_over_b(self,h_over_b_in):
+        if self.test_case == "IGE":
+            
+            # These are the current values for height above ground before applying the new height
+            print()
+            print("-----------------------------------------------")
+            print("-----------------------------------------------")
+            print("Previous main wing height above ground: ", np.absolute(self.main_wing_height_above_ground))
+            print("Previous ground effect wing height below ground: ", self.ground_effect_wing_height_above_ground)
+            h_over_b_ratio = np.absolute(self.main_wing_height_above_ground/self.b)
+            print("Previous (h/b) ratio of height above ground to wingspan: ", h_over_b_ratio)
+            print()
+            #print("-----------------------------------------------")
+            print("------------SETTING NEW WING HEIGHT------------")
+            #print("-----------------------------------------------")
+            print()
+            
+            
+            self.main_wing_height_above_ground = self.data["wings"]["main_wing"]["connect_to"]["dz"]
+            self.ground_effect_wing_height_above_ground = self.data["wings"]["ground_effect_wing"]["connect_to"]["dz"]
+            
+            # need to set the location of dz in data to the value for it to show up I want it to
+            
+            # These are the new values for height above ground after applying the new height
+            self.main_wing_height_above_ground = -1*(h_over_b_in*self.b)
+            self.ground_effect_wing_height_above_ground = -self.main_wing_height_above_ground
+            h_over_b_ratio_out = np.absolute(self.main_wing_height_above_ground/self.b)
+            print("New main wing height above ground: ", np.absolute(self.main_wing_height_above_ground))
+            print("New ground effect wing height below ground: ", self.ground_effect_wing_height_above_ground)
+            print("New (h/b) ratio of height above ground to wingspan: ", h_over_b_ratio_out)
+            print("-----------------------------------------------")
+            print("-----------------------------------------------")
+            print()
+            
+        else:
+            print("Invalid entry, height above ground only callable in ground effect")
+        
+    # Returns the height above the ground of the main wing and the h/b ratio
+    def get_height_above_ground_and_h_over_b(self):
+ 
+        if self.test_case == "IGE":
+            print("Main wing height above ground: ", np.absolute(self.main_wing_height_above_ground))
+            print("Ground effect wing height below ground: ", self.ground_effect_wing_height_above_ground)
+            h_over_b_ratio = np.absolute(self.main_wing_height_above_ground/self.b)
+            print("(h/b) ratio of height above ground to wingspan: ", h_over_b_ratio)
+        else:
+            print("Invalid entry, height above ground only callable in ground effect")
+            
+    
+    # Performs a sweep over range of values specified for the user for the wing above the ground in ground effect
+    def h_over_b_sweep(self, range_low, range_high, step_size):
+        
+        for x in np.arange(range_low, range_high, step_size):
+            self.set_h_over_b(x)
+            
+            self.my_scene = MX.Scene(self.input_file)
+            self.my_scene.display_wireframe(show_legend=True)
+            
     
         
     def display_heat_map(self):
         test = 0
-       
+    
+    # Calculates the optimal twist distribution for the given planform (DOES NOT APPLY THESE TO SELF.DATA FOR CALCULATIONS)
     def get_applied_twist_values(self):
         span_frac = self.get_span_frac()
         list_length = len(span_frac)
@@ -938,8 +968,9 @@ class Masters_Research:
         return applied_twist, twist_list
     
     
-    
-    def Generate_Twist_Heat_Map(self):
+    # Generatesa 2D plot with lines for each chord length, and colors them based on the amount of twist
+    # given the optimal twist distribution for the planform
+    def Generate_Optimal_Twist_Heat_Map(self):
         span_frac = self.get_span_frac()
         list_length = len(span_frac)
         
@@ -1084,10 +1115,7 @@ class Masters_Research:
         
         
         
-        
-        
     
-        
     
         
             
@@ -1098,26 +1126,50 @@ class Masters_Research:
 
 
 
-p1 = Masters_Research("OGE")
+p1 = Masters_Research("IGE")
 
-p1.Display_scene()
-#p1.Display_planform()
-#p1.Display_Optimum_Washout_Distribution_Plot()
-p1.Apply_Optimal_Twist_Distribution()
+#VERIFIED CORRECT
 #p1.Display_scene()
 
+#VERIFIED CORRECT
+#p1.Display_planform()
+
+#VERIFIED CORRECT
+#p1.Display_Optimum_Washout_Distribution_Plot()
+
+#VERIFIED CORRECT
+#p1.Apply_Optimal_Twist_Distribution()
+
+
+#VERIFIED CORRECT
+#p1.Generate_Optimal_Twist_Heat_Map()
+
+
+#p1.get_height_above_ground_and_h_over_b()
+
+
+
+#p1.set_h_over_b(1)
+
+
+p1.h_over_b_sweep(0,2.05,0.05)
 
 #p1.Plot_CL_Distribution()
-#p1.Apply_Optimal_Twist_Distribution_without_dict()
-#p1.Display_scene()
 
-#p1.Generate_Twist_Heat_Map()
+
+
+
+#print(p1.Get_AoA_At_Target_CL(0.5))
+
+
+#p1.Apply_AoA_At_Target_CL(0.5)
+#p1.Display_scene()
 
 # Input in format for rnage of sweep with size step
 # (range_low, range_high, step)
-p1.AoA_sweep(-10,15,1)
+#p1.AoA_sweep(-1,6,1)
 
-
+#p1.Plot_CL_Distribution()
 
 #print(p1.Display_Optimum_Washout_Distribution_Plot())
 #print("twist", p1.data["wings"]["main_wing"] ["twist"])
