@@ -30,7 +30,7 @@
       "is_main": true,
       "connect_to": {
         "location": "root",
-        "dz": -1.837
+        "dz": -33.066
       },
       "semispan": 18.37,
       "airfoil": "NACA_0010",
@@ -64,7 +64,7 @@
       "is_main": false,
       "connect_to": {
         "location": "root",
-        "dz": 1.837
+        "dz": 29.392000000000003
       },
       "semispan": 18.37,
       "airfoil": "NACA_0010",

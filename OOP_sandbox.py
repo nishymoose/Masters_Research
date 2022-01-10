@@ -857,14 +857,28 @@ class Masters_Research:
             print()
             
             
-            self.main_wing_height_above_ground = self.data["wings"]["main_wing"]["connect_to"]["dz"]
-            self.ground_effect_wing_height_above_ground = self.data["wings"]["ground_effect_wing"]["connect_to"]["dz"]
+            
+            
+            with open("traditional_airplane_case_one.json", "w") as write_file:
+                if self.test_case == "IGE":
+                    self.data["wings"]["main_wing"]["connect_to"]["dz"] = -1*(h_over_b_in*self.b)
+                    self.data["wings"]["ground_effect_wing"]["connect_to"]["dz"] = -self.main_wing_height_above_ground
+                    
+                    self.main_wing_height_above_ground = self.data["wings"]["main_wing"]["connect_to"]["dz"]
+                    self.ground_effect_wing_height_above_ground = self.data["wings"]["ground_effect_wing"]["connect_to"]["dz"]
+                
+                else:
+                    print("Incorrect Input")
+                    
+                json.dump(self.data, write_file, indent = 2)
+            self.my_scene = MX.Scene(self.input_file)
+            self.my_scene.display_wireframe(show_legend=True)
             
             # need to set the location of dz in data to the value for it to show up I want it to
             
             # These are the new values for height above ground after applying the new height
-            self.main_wing_height_above_ground = -1*(h_over_b_in*self.b)
-            self.ground_effect_wing_height_above_ground = -self.main_wing_height_above_ground
+            
+            
             h_over_b_ratio_out = np.absolute(self.main_wing_height_above_ground/self.b)
             print("New main wing height above ground: ", np.absolute(self.main_wing_height_above_ground))
             print("New ground effect wing height below ground: ", self.ground_effect_wing_height_above_ground)
@@ -1152,7 +1166,7 @@ p1 = Masters_Research("IGE")
 #p1.set_h_over_b(1)
 
 
-p1.h_over_b_sweep(0,2.05,0.05)
+p1.h_over_b_sweep(0,1,0.1)
 
 #p1.Plot_CL_Distribution()
 
