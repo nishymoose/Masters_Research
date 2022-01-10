@@ -862,9 +862,9 @@ class Masters_Research:
             with open("traditional_airplane_case_one.json", "w") as write_file:
                 if self.test_case == "IGE":
                     self.data["wings"]["main_wing"]["connect_to"]["dz"] = -1*(h_over_b_in*self.b)
-                    self.data["wings"]["ground_effect_wing"]["connect_to"]["dz"] = -self.main_wing_height_above_ground
-                    
                     self.main_wing_height_above_ground = self.data["wings"]["main_wing"]["connect_to"]["dz"]
+                    
+                    self.data["wings"]["ground_effect_wing"]["connect_to"]["dz"] = -self.main_wing_height_above_ground
                     self.ground_effect_wing_height_above_ground = self.data["wings"]["ground_effect_wing"]["connect_to"]["dz"]
                 
                 else:
@@ -1152,7 +1152,7 @@ p1 = Masters_Research("IGE")
 #p1.Display_Optimum_Washout_Distribution_Plot()
 
 #VERIFIED CORRECT
-#p1.Apply_Optimal_Twist_Distribution()
+p1.Apply_Optimal_Twist_Distribution()
 
 
 #VERIFIED CORRECT
@@ -1166,9 +1166,9 @@ p1 = Masters_Research("IGE")
 #p1.set_h_over_b(1)
 
 
-p1.h_over_b_sweep(0,1,0.1)
+#p1.h_over_b_sweep(0,1.1,0.1)
 
-#p1.Plot_CL_Distribution()
+p1.Plot_CL_Distribution()
 
 
 
@@ -1176,7 +1176,8 @@ p1.h_over_b_sweep(0,1,0.1)
 #print(p1.Get_AoA_At_Target_CL(0.5))
 
 
-#p1.Apply_AoA_At_Target_CL(0.5)
+p1.Apply_AoA_At_Target_CL(0.5)
+p1.Plot_CL_Distribution()
 #p1.Display_scene()
 
 # Input in format for rnage of sweep with size step
