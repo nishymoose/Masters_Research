@@ -21,6 +21,8 @@ from operator import itemgetter
 # imported to replicate figure 1.8.19
 
 
+#TODO: Change the way self.data is reinitialzied when I am applying the twist, try just assigning them to the location instead of the hole self.data file
+
 class Masters_Research:
     def __init__(self, test_condition):
         
@@ -579,12 +581,7 @@ class Masters_Research:
         #print(l)
         twist_list = self.Reverse(l)
         
-        
-        
-        
         applied_twist_ground_effect_wing = [element * -1 for element in applied_twist]
-        
-        
         
         l_ground_effect_wing = []
         l_ground_effect_wing.append([1.0, -total_opt_twist_degrees])  
@@ -595,117 +592,23 @@ class Masters_Research:
         #print(l)
         twist_list_ground_effect_wing = self.Reverse(l_ground_effect_wing)
         
-        
+        # CONCERNS:
         # concerned that twist_list has 42 elements instead of 40 and that that will mess with my values
-        
         
         if self.test_case == "IGE":
             # initializing dictionary in ground effect
-            self.data = {
-                "CG" : [0,0,0],
-                "weight" : 100.0,
-                "reference" : {
-                    "area" : 225.0,
-                    "longitudinal_length" : 6.5,
-                    "lateral_length" : 36.74
-                },
-                "airfoils" : {
-                    "NACA_0010" : {
-                        "type" : "linear",
-                        "aL0" : 0.0,
-                        "CLa" : 6.28318530717959,
-                        "CmL0" : 0.0,
-                        "Cma" : 0.00,
-                        "CD0" : 0.00,
-                        "CD1" : 0.0,
-                        "CD2" : 0.0,
-                        "CL_max" : 1.4
-                    }
-                },
-                "wings" : {
-                    "main_wing" : {
-                        "ID" : 1,
-                        "side" : "both",
-                        "is_main" : True,
-                        "connect_to" : {
-                            "location" : "root",
-                            "dz" : -1.837
-                        },
-                        "semispan" : 18.37,
-                        "airfoil" : "NACA_0010",
-                        "twist" : twist_list,
-                        "chord" : [[0.0, 8.75], [1.0, 3.5]],
-                        "grid" : {
-                            "N" : 40
-                        }
-                    },
-                    "ground_effect_wing" : {
-                        "ID" : 2,
-                        "side" : "both",
-                        "is_main" : False,
-                        "connect_to" : {
-                            "location" : "root",
-                            "dz" : 1.837
-                        },
-                        "semispan" : 18.37,
-                        "airfoil" : "NACA_0010",
-                        "twist" : twist_list_ground_effect_wing,
-                        "chord" : [[0.0, 8.75], [1.0, 3.5]],
-                        "grid" : {
-                            "N" : 40
-                        }
-                    }
-                }
-            }
-            
+            self.data["wings"]["main_wing"]["twist"] = twist_list
+            self.data["wings"]["ground_effect_wing"]["twist"] = twist_list_ground_effect_wing
             # Writes Dictionairy for Wing IN GROUND EFFECT(IGE) to json to be used in MachupX calculations
             with open("traditional_airplane_case_one.json", "w") as write_file:
                 json.dump(self.data, write_file, indent = 2)
                 
-                
         elif self.test_case == "OGE":
             # initializing dictionary out of ground effect
-            self.data = {
-                "CG" : [0,0,0],
-                "weight" : 100.0,
-                "reference" : {
-                    "area" : 225.0,
-                    "longitudinal_length" : 6.5,
-                    "lateral_length" : 36.74
-                },
-                "airfoils" : {
-                    "NACA_0010" : {
-                        "type" : "linear",
-                        "aL0" : 0.0,
-                        "CLa" : 6.28318530717959,
-                        "CmL0" : 0.0,
-                        "Cma" : 0.00,
-                        "CD0" : 0.00,
-                        "CD1" : 0.0,
-                        "CD2" : 0.0,
-                        "CL_max" : 1.4
-                    }
-                },
-                "wings" : {
-                    "main_wing" : {
-                        "ID" : 1,
-                        "side" : "both",
-                        "is_main" : True,
-                        "semispan" : 18.37,
-                        "airfoil" : "NACA_0010",
-                        "twist" : twist_list,
-                        "chord" : [[0.0, 8.75], [1.0, 3.5]],
-                        "grid" : {
-                            "N" : 40
-                        }
-                    }
-                }
-            }
-            
+            self.data["wings"]["main_wing"]["twist"] = twist_list
             # Writes Dictionairy for Wing NOT IN GROUND EFFECT(OGE) to json to be used in MachupX calculations
             with open("traditional_airplane_case_one.json", "w") as write_file:
-                json.dump(self.data, write_file, indent = 2)
-            
+                json.dump(self.data, write_file, indent = 2) 
         else:
             print("Incorrect Input")
         
@@ -1152,7 +1055,9 @@ p1 = Masters_Research("IGE")
 #p1.Display_Optimum_Washout_Distribution_Plot()
 
 #VERIFIED CORRECT
-p1.Apply_Optimal_Twist_Distribution()
+#p1.Apply_Optimal_Twist_Distribution()
+#p1.Display_scene()
+#print(p1.get_applied_twist_values())
 
 
 #VERIFIED CORRECT
@@ -1163,12 +1068,12 @@ p1.Apply_Optimal_Twist_Distribution()
 
 
 
-#p1.set_h_over_b(1)
+p1.set_h_over_b(0.1)
 
 
 #p1.h_over_b_sweep(0,1.1,0.1)
 
-p1.Plot_CL_Distribution()
+#p1.Plot_CL_Distribution()
 
 
 
@@ -1176,13 +1081,13 @@ p1.Plot_CL_Distribution()
 #print(p1.Get_AoA_At_Target_CL(0.5))
 
 
-p1.Apply_AoA_At_Target_CL(0.5)
-p1.Plot_CL_Distribution()
+#p1.Apply_AoA_At_Target_CL(0.5)
+#p1.Plot_CL_Distribution()
 #p1.Display_scene()
 
 # Input in format for rnage of sweep with size step
 # (range_low, range_high, step)
-#p1.AoA_sweep(-1,6,1)
+p1.AoA_sweep(-1,6,1)
 
 #p1.Plot_CL_Distribution()
 
